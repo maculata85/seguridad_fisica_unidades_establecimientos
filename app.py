@@ -13,7 +13,7 @@ DIFICULTADES = {
     'facil': 3,
     'intermedio': 2,
     'dificil': 1,
-    'dios': 1, # <--- CAMBIO CLAVE: Modo Dios ahora tiene 1 vida.
+    'dios': 1, # <--- CONFIGURACIÓN CLAVE: Modo Dios ahora tiene 1 vida.
     'todos': 2
 }
 
@@ -25,6 +25,13 @@ def preparar_examen(dificultad):
         preguntas = BASE_DE_PREGUNTAS[:] # Copia completa si es "todos"
     else:
         preguntas = [p for p in BASE_DE_PREGUNTAS if p['dificultad'] == dificultad]
+
+    # --- LÍNEAS DE DEPURACIÓN EN prepare_examen ---
+    print(f"--- DEBUG: preparar_examen - DIFICULTAD ELEGIDA: {dificultad} ---")
+    print(f"--- DEBUG: preparar_examen - PREGUNTAS FILTRADAS PARA '{dificultad}': {len(preguntas)} ---")
+    if not preguntas:
+        print(f"--- DEBUG: preparar_examen - ADVERTENCIA: No se encontraron preguntas para la dificultad '{dificultad}'.")
+    # --- FIN DE LÍNEAS DE DEPURACIÓN ---
 
     # Si no hay suficientes preguntas, se usaran las que haya
     num_a_seleccionar = min(NUM_PREGUNTAS_EXAMEN, len(preguntas))
@@ -50,6 +57,12 @@ def examen():
     preguntas = preparar_examen(dificultad)
     vidas = DIFICULTADES[dificultad]
 
+    # --- LÍNEAS DE DEPURACIÓN EN examen ---
+    print(f"--- DEBUG: examen - DIFICULTAD RECIBIDA: {dificultad} ---")
+    print(f"--- DEBUG: examen - VIDAS ASIGNADAS: {vidas} ---")
+    print(f"--- DEBUG: examen - TOTAL PREGUNTAS PREPARADAS: {len(preguntas)} ---")
+    # --- FIN DE LÍNEAS DE DEPURACIÓN ---
+
     # Inicializa las variables de sesión para el nuevo examen
     session['preguntas'] = preguntas
     session['respuestas'] = []
@@ -71,6 +84,11 @@ def mostrar_pregunta():
     dificultad_actual = session.get('dificultad')
     indice_pregunta_actual = session.get('indice_pregunta_actual', 0)
 
+    # --- LÍNEAS DE DEPURACIÓN EN mostrar_pregunta ---
+    print(f"--- DEBUG: mostrar_pregunta - Carga para índice: {indice_pregunta_actual}, Vidas: {vidas}, Dificultad: {dificultad_actual} ---")
+    # --- FIN DE LÍNEAS DE DEPURACIÓN ---
+
+
     # --- Validación inicial de sesión para robustez ---
     # Si los datos esenciales de la sesión no están, redirigir al inicio.
     if preguntas is None or vidas is None or dificultad_actual is None:
@@ -82,12 +100,14 @@ def mostrar_pregunta():
 
     # 1. Si ya no hay más preguntas para mostrar.
     if indice_pregunta_actual >= len(preguntas):
+        print(f"--- DEBUG: mostrar_pregunta - Redirigiendo a resultados: Todas las preguntas respondidas. ---")
         return redirect(url_for('resultado'))
 
     # 2. Si las vidas se han agotado (0 o menos).
-    #    Con Modo Dios teniendo 1 vida, si vidas <= 0, significa que se equivocó.
-    #    Esta condición ahora es simple y directa para todos los modos si vidas_iniciales > 0.
+    #    Con Modo Dios configurado a 1 vida, si vidas <= 0, significa que se equivocó.
+    #    Esta condición ahora es simple y directa para todos los modos: si no quedan vidas, se acaba.
     if vidas <= 0: 
+        print(f"--- DEBUG: mostrar_pregunta - Redirigiendo a resultados: Vidas agotadas ({vidas}). ---")
         return redirect(url_for('resultado'))
 
     # --- Lógica de procesamiento de respuesta (si la solicitud es POST) ---
@@ -107,8 +127,10 @@ def mostrar_pregunta():
             vidas -= 1
             session['vidas'] = vidas
             flash(f'¡Incorrecto! La respuesta correcta era: {respuesta_correcta_texto}', 'error')
+            print(f"--- DEBUG: mostrar_pregunta - RESPUESTA INCORRECTA. Vidas restantes: {vidas} ---")
         else:
             flash('¡Correcto!', 'success')
+            print(f"--- DEBUG: mostrar_pregunta - RESPUESTA CORRECTA. Vidas restantes: {vidas} ---")
 
         respuestas.append({
             'pregunta': pregunta_respondida_obj['pregunta'],
